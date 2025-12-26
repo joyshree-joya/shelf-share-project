@@ -1,0 +1,249 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
+@layer base {
+  :root {
+    /* Earthy sustainability palette */
+    --background: 45 30% 98%;
+    --foreground: 150 20% 15%;
+
+    --card: 45 40% 99%;
+    --card-foreground: 150 20% 15%;
+
+    --popover: 45 40% 99%;
+    --popover-foreground: 150 20% 15%;
+
+    /* Forest green primary */
+    --primary: 152 45% 38%;
+    --primary-foreground: 45 30% 98%;
+    --primary-light: 152 40% 92%;
+
+    /* Warm sand secondary */
+    --secondary: 35 30% 92%;
+    --secondary-foreground: 150 20% 25%;
+
+    /* Sage muted */
+    --muted: 150 15% 94%;
+    --muted-foreground: 150 10% 45%;
+
+    /* Mint accent */
+    --accent: 160 50% 45%;
+    --accent-foreground: 45 30% 98%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 45 30% 98%;
+
+    --border: 150 15% 88%;
+    --input: 150 15% 88%;
+    --ring: 152 45% 38%;
+
+    --radius: 0.75rem;
+
+    /* Custom tokens */
+    --success: 152 60% 42%;
+    --success-foreground: 45 30% 98%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 45 30% 98%;
+    --info: 200 80% 50%;
+    --info-foreground: 45 30% 98%;
+
+    /* Badge colors */
+    --bronze: 30 60% 50%;
+    --silver: 210 10% 65%;
+    --gold: 45 90% 50%;
+
+    /* Gradients */
+    --gradient-hero: linear-gradient(135deg, hsl(152, 45%, 38%) 0%, hsl(160, 50%, 45%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(45, 40%, 99%) 0%, hsl(45, 30%, 96%) 100%);
+    --gradient-warm: linear-gradient(135deg, hsl(35, 30%, 92%) 0%, hsl(45, 40%, 96%) 100%);
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 hsl(150 20% 15% / 0.05);
+    --shadow-md: 0 4px 6px -1px hsl(150 20% 15% / 0.08), 0 2px 4px -2px hsl(150 20% 15% / 0.06);
+    --shadow-lg: 0 10px 15px -3px hsl(150 20% 15% / 0.1), 0 4px 6px -4px hsl(150 20% 15% / 0.08);
+    --shadow-glow: 0 0 20px hsl(152 45% 38% / 0.15);
+
+    --sidebar-background: 45 30% 98%;
+    --sidebar-foreground: 150 20% 15%;
+    --sidebar-primary: 152 45% 38%;
+    --sidebar-primary-foreground: 45 30% 98%;
+    --sidebar-accent: 150 15% 94%;
+    --sidebar-accent-foreground: 150 20% 25%;
+    --sidebar-border: 150 15% 88%;
+    --sidebar-ring: 152 45% 38%;
+  }
+
+  .dark {
+    --background: 150 20% 8%;
+    --foreground: 45 30% 95%;
+
+    --card: 150 18% 12%;
+    --card-foreground: 45 30% 95%;
+
+    --popover: 150 18% 12%;
+    --popover-foreground: 45 30% 95%;
+
+    --primary: 152 50% 50%;
+    --primary-foreground: 150 20% 8%;
+    --primary-light: 152 30% 20%;
+
+    --secondary: 150 15% 18%;
+    --secondary-foreground: 45 30% 90%;
+
+    --muted: 150 15% 18%;
+    --muted-foreground: 150 10% 60%;
+
+    --accent: 160 50% 50%;
+    --accent-foreground: 150 20% 8%;
+
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 45 30% 95%;
+
+    --border: 150 15% 22%;
+    --input: 150 15% 22%;
+    --ring: 152 50% 50%;
+
+    --sidebar-background: 150 18% 10%;
+    --sidebar-foreground: 45 30% 95%;
+    --sidebar-primary: 152 50% 50%;
+    --sidebar-primary-foreground: 150 20% 8%;
+    --sidebar-accent: 150 15% 18%;
+    --sidebar-accent-foreground: 45 30% 90%;
+    --sidebar-border: 150 15% 22%;
+    --sidebar-ring: 152 50% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
+  }
+}
+
+@layer components {
+  .glass-effect {
+    @apply backdrop-blur-md bg-card/80;
+  }
+
+  .card-hover {
+    @apply transition-all duration-300 ease-out hover:shadow-lg hover:-translate-y-1;
+  }
+
+  .btn-glow {
+    @apply relative overflow-hidden;
+  }
+
+  .btn-glow::after {
+    content: '';
+    @apply absolute inset-0 opacity-0 transition-opacity duration-300;
+    background: var(--gradient-hero);
+    filter: blur(15px);
+    z-index: -1;
+  }
+
+  .btn-glow:hover::after {
+    @apply opacity-40;
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent;
+    background-image: var(--gradient-hero);
+  }
+}
+
+@layer utilities {
+  .animate-in {
+    animation: fadeIn 0.5s ease-out forwards;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.5s ease-out forwards;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.3s ease-out forwards;
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .stagger-1 { animation-delay: 0.1s; }
+  .stagger-2 { animation-delay: 0.2s; }
+  .stagger-3 { animation-delay: 0.3s; }
+  .stagger-4 { animation-delay: 0.4s; }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted)) 25%,
+    hsl(var(--muted-foreground) / 0.1) 50%,
+    hsl(var(--muted)) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
