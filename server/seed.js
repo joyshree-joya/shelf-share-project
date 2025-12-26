@@ -65,14 +65,14 @@ async function main() {
   // Ensure a well-known demo user matches the front-end defaults.
   owners.set('1', {
     id: '1',
-    name: 'Sudipto Shawon',
+    name: 'Shreyashi Mukharjee',
     avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
   });
 
   const defaultPasswordHash = await bcrypt.hash('demo123', 10);
   let userCount = 0;
   for (const owner of owners.values()) {
-    const email = owner.id === '1' ? 'demo@shelfshare.com' : `user${owner.id}@shelfshare.local`;
+    const email = owner.id === '1' ? 'shreyashi.mukharjee@shelfshare.com' : `user${owner.id}@shelfshare.local`;
     await User.updateOne(
       { id: owner.id },
       {

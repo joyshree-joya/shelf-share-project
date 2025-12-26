@@ -12,6 +12,7 @@ import Dashboard from "./pages/Dashboard";
 import ItemDetails from "./pages/ItemDetails";
 import UploadItem from "./pages/UploadItem";
 import Profile from "./pages/Profile";
+import Requests from "./pages/Requests";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,6 +32,7 @@ const App = () => (
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/item/:id" element={<ItemDetails />} />
               <Route path="/upload" element={<UploadItem />} />
+              <Route path="/requests" element={<Requests />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

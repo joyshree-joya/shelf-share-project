@@ -29,8 +29,8 @@ export default function Dashboard() {
 
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
-      // Only show available items
-      if (item.status !== 'available') return false;
+      // Hide completed items. ("hold" items remain visible.)
+      if (item.status === 'taken') return false;
 
       // Search filter
       if (search) {

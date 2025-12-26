@@ -46,6 +46,11 @@ export function ItemCard({ item, className }: ItemCardProps) {
           <Badge variant={item.type === 'donation' ? 'donation' : 'exchange'}>
             {item.type === 'donation' ? 'Donation' : 'Exchange'}
           </Badge>
+          {item.status === 'hold' ? (
+            <Badge variant="secondary">On Hold</Badge>
+          ) : item.status === 'pending' ? (
+            <Badge variant="secondary">Pending</Badge>
+          ) : null}
         </div>
         <div className="absolute top-3 right-3">
           <Badge variant={item.condition as 'new' | 'used' | 'heavily-used'}>

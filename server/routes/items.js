@@ -1,12 +1,28 @@
 import express from 'express';
 import crypto from 'crypto';
 import { Item } from '../models/Item.js';
+import { DonationRequest } from '../models/DonationRequest.js';
 import { User } from '../models/User.js';
 import { requireAuth } from '../lib/auth.js';
-import { getBadgeFromPoints } from '../lib/badges.js';
 import { toClientItem } from '../lib/serializers.js';
 
 const router = express.Router();
+
+async function attachOwnerEmails(items) {
+  const list = Array.isArray(items) ? items : [items];
+  const need = list.filter((it) => it && it.ownerId && !it.ownerEmail).map((it) => it.ownerId);
+  const unique = Array.from(new Set(need));
+  if (unique.length === 0) return items;
+  const users = await User.find({ id: { $in: unique } }, { id: 1, email: 1 }).lean();
+  const map = new Map(users.map((u) => [u.id, u.email]));
+  for (const it of list) {
+    if (it && it.ownerId && !it.ownerEmail) {
+      it.ownerEmail = map.get(it.ownerId) || '';
+    }
+  }
+  return items;
+}
+
 
 // GET /api/items
 router.get('/', async (req, res) => {
@@ -18,6 +34,7 @@ router.get('/', async (req, res) => {
     if (ownerId) filter.ownerId = ownerId;
 
     const items = await Item.find(filter).sort({ createdAt: -1 }).lean();
+    await attachOwnerEmails(items);
     res.json(items.map((i) => toClientItem(i)));
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch items' });
@@ -28,6 +45,7 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const item = await Item.findOne({ id: req.params.id }).lean();
+    await attachOwnerEmails([item]);
     if (!item) return res.status(404).json({ error: 'Item not found' });
     res.json(toClientItem(item));
   } catch (_err) {
@@ -52,6 +70,7 @@ router.post('/', requireAuth(), async (req, res) => {
       status: 'available',
       ownerId: req.user.id,
       ownerName: req.user.name,
+      ownerEmail: req.user.email,
       ownerAvatar: req.user.avatar || '',
       createdAt: now,
       updatedAt: now,
@@ -64,6 +83,8 @@ router.post('/', requireAuth(), async (req, res) => {
 });
 
 // POST /api/items/:id/claim (donation)
+// NOTE: In the new flow, a "claim" creates a request and puts the item on hold.
+// The donor must accept/deny the request from /api/donations/requests.
 router.post('/:id/claim', requireAuth(), async (req, res) => {
   try {
     const item = await Item.findOne({ id: req.params.id });
@@ -72,19 +93,30 @@ router.post('/:id/claim', requireAuth(), async (req, res) => {
     if (item.status !== 'available') return res.status(400).json({ error: 'Item is not available' });
     if (item.ownerId === req.user.id) return res.status(400).json({ error: 'You cannot claim your own item' });
 
-    item.status = 'taken';
-    item.claimedBy = req.user.id;
-    item.claimedByName = req.user.name;
-    item.claimedAt = new Date();
-    await item.save();
+    // Ensure there isn't already an active request.
+    const existing = await DonationRequest.findOne({ itemId: item.id, status: { $in: ['pending', 'accepted'] } }).lean();
+    if (existing) return res.status(400).json({ error: 'This item is already on hold' });
 
-    // Award the owner 1 donor point.
-    const owner = await User.findOne({ id: item.ownerId });
-    if (owner) {
-      owner.donorPoints = Number(owner.donorPoints || 0) + 1;
-      owner.badge = getBadgeFromPoints(owner.donorPoints);
-      await owner.save();
-    }
+    const requestId = crypto.randomUUID();
+    await DonationRequest.create({
+      id: requestId,
+      itemId: item.id,
+      itemTitle: item.title,
+      itemImage: item.images?.[0] || '',
+      ownerId: item.ownerId,
+      ownerName: item.ownerName,
+      requesterId: req.user.id,
+      requesterName: req.user.name,
+      status: 'pending',
+      messages: [],
+    });
+
+    item.status = 'hold';
+    item.holdBy = req.user.id;
+    item.holdByName = req.user.name;
+    item.holdRequestId = requestId;
+    item.holdAt = new Date();
+    await item.save();
 
     res.json(toClientItem(item));
   } catch (_err) {
@@ -97,6 +129,7 @@ router.patch('/:id', requireAuth(), async (req, res) => {
   try {
     const updates = req.body || {};
     const item = await Item.findOne({ id: req.params.id }).lean();
+    await attachOwnerEmails([item]);
     if (!item) return res.status(404).json({ error: 'Item not found' });
     if (item.ownerId !== req.user.id) {
       return res.status(403).json({ error: 'You can only update your own items' });
@@ -126,6 +159,7 @@ router.patch('/:id', requireAuth(), async (req, res) => {
 router.delete('/:id', requireAuth(), async (req, res) => {
   try {
     const item = await Item.findOne({ id: req.params.id }).lean();
+    await attachOwnerEmails([item]);
     if (!item) return res.status(404).json({ error: 'Item not found' });
     if (item.ownerId !== req.user.id) {
       return res.status(403).json({ error: 'You can only delete your own items' });

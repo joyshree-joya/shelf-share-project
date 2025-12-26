@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, ReactNode } from 'react';
-import { Item, ExchangeRequest } from '@/types';
+import { Item, ExchangeRequest, DonationRequest } from '@/types';
 import { apiFetch } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 
@@ -7,13 +7,17 @@ interface ItemsContextType {
   items: Item[];
   userItems: Item[];
   exchangeRequests: ExchangeRequest[];
+  donationRequests: DonationRequest[];
   isLoading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
   addItem: (item: Omit<Item, 'id' | 'createdAt' | 'status'>) => Promise<Item>;
   updateItem: (id: string, updates: Partial<Item>) => Promise<Item | null>;
   deleteItem: (id: string) => Promise<void>;
-  claimItem: (itemId: string) => Promise<void>;
+  requestDonation: (itemId: string) => Promise<void>;
+  respondToDonation: (requestId: string, accept: boolean) => Promise<void>;
+  sendDonationMessage: (requestId: string, text: string) => Promise<void>;
+  completeDonation: (requestId: string) => Promise<void>;
   requestExchange: (itemId: string, offeredItemId: string, message?: string) => Promise<void>;
   respondToExchange: (requestId: string, accept: boolean) => Promise<void>;
   getUserItems: (userId: string) => Item[];
@@ -24,6 +28,7 @@ const ItemsContext = createContext<ItemsContextType | undefined>(undefined);
 export function ItemsProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<Item[]>([]);
   const [exchangeRequests, setExchangeRequests] = useState<ExchangeRequest[]>([]);
+  const [donationRequests, setDonationRequests] = useState<DonationRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { isAuthenticated } = useAuth();
@@ -37,8 +42,11 @@ export function ItemsProvider({ children }: { children: ReactNode }) {
       if (isAuthenticated) {
         const reqs = await apiFetch<ExchangeRequest[]>('/exchanges');
         setExchangeRequests(reqs);
+        const dreqs = await apiFetch<DonationRequest[]>('/donations/requests');
+        setDonationRequests(dreqs);
       } else {
         setExchangeRequests([]);
+        setDonationRequests([]);
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Failed to load items';
@@ -57,11 +65,16 @@ export function ItemsProvider({ children }: { children: ReactNode }) {
     // When auth changes, refetch exchange requests.
     if (!isAuthenticated) {
       setExchangeRequests([]);
+      setDonationRequests([]);
       return;
     }
     void apiFetch<ExchangeRequest[]>('/exchanges')
       .then(setExchangeRequests)
       .catch(() => setExchangeRequests([]));
+
+    void apiFetch<DonationRequest[]>('/donations/requests')
+      .then(setDonationRequests)
+      .catch(() => setDonationRequests([]));
   }, [isAuthenticated]);
 
   const addItem = async (itemData: Omit<Item, 'id' | 'createdAt' | 'status'>) => {
@@ -87,9 +100,43 @@ export function ItemsProvider({ children }: { children: ReactNode }) {
     setItems((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const claimItem = async (itemId: string) => {
-    const updated = await apiFetch<Item>(`/items/${itemId}/claim`, { method: 'POST' });
-    setItems((prev) => prev.map((it) => (it.id === itemId ? updated : it)));
+  const requestDonation = async (itemId: string) => {
+    // Create a donation request and put the item on hold.
+    await apiFetch<DonationRequest>('/donations/requests', {
+      method: 'POST',
+      body: JSON.stringify({ itemId }),
+    });
+    // Refresh items + requests for up-to-date status.
+    const data = await apiFetch<Item[]>('/items');
+    setItems(data);
+    const dreqs = await apiFetch<DonationRequest[]>('/donations/requests');
+    setDonationRequests(dreqs);
+  };
+
+  const respondToDonation = async (requestId: string, accept: boolean) => {
+    const updated = await apiFetch<DonationRequest>(`/donations/requests/${requestId}/respond`, {
+      method: 'PATCH',
+      body: JSON.stringify({ accept }),
+    });
+    setDonationRequests((prev) => prev.map((r) => (r.id === requestId ? updated : r)));
+    const data = await apiFetch<Item[]>('/items');
+    setItems(data);
+  };
+
+  const sendDonationMessage = async (requestId: string, text: string) => {
+    const updated = await apiFetch<DonationRequest>(`/donations/requests/${requestId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ text }),
+    });
+    setDonationRequests((prev) => prev.map((r) => (r.id === requestId ? updated : r)));
+  };
+
+  const completeDonation = async (requestId: string) => {
+    await apiFetch<{ ok: true }>(`/donations/requests/${requestId}/complete`, { method: 'PATCH' });
+    const data = await apiFetch<Item[]>('/items');
+    setItems(data);
+    const dreqs = await apiFetch<DonationRequest[]>('/donations/requests');
+    setDonationRequests(dreqs);
   };
 
   const requestExchange = async (
@@ -122,7 +169,8 @@ export function ItemsProvider({ children }: { children: ReactNode }) {
     return items.filter((item) => item.ownerId === userId);
   };
 
-  const userItems = useMemo(() => items.filter((item) => item.status === 'available'), [items]);
+  // Items to show on browse pages: exclude fully completed (taken)
+  const userItems = useMemo(() => items.filter((item) => item.status !== 'taken'), [items]);
 
   return (
     <ItemsContext.Provider
@@ -130,13 +178,17 @@ export function ItemsProvider({ children }: { children: ReactNode }) {
         items,
         userItems,
         exchangeRequests,
+        donationRequests,
         isLoading,
         error,
         refresh,
         addItem,
         updateItem,
         deleteItem,
-        claimItem,
+        requestDonation,
+        respondToDonation,
+        sendDonationMessage,
+        completeDonation,
         requestExchange,
         respondToExchange,
         getUserItems,

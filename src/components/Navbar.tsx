@@ -1,5 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { useItems } from '@/context/ItemsContext';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -16,6 +17,7 @@ import {
   LogOut, 
   Menu, 
   X,
+  Bell,
   BookOpen,
   Smartphone,
   ShoppingBag
@@ -25,6 +27,7 @@ import { cn } from '@/lib/utils';
 
 export function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
+  const { donationRequests } = useItems();
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -36,8 +39,13 @@ export function Navbar() {
 
   const navLinks = [
     { href: '/dashboard', label: 'Browse Items', icon: ShoppingBag },
+    { href: '/requests', label: 'Requests', icon: Bell },
     { href: '/upload', label: 'Share Item', icon: Plus },
   ];
+
+  const pendingIncoming = user
+    ? donationRequests.filter((r) => r.ownerId === user.id && r.status === 'pending').length
+    : 0;
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -68,6 +76,11 @@ export function Navbar() {
                 >
                   <link.icon className="h-4 w-4" />
                   {link.label}
+                  {link.href === '/requests' && pendingIncoming > 0 ? (
+                    <span className="ml-1 inline-flex items-center justify-center rounded-full bg-destructive px-2 py-0.5 text-[10px] font-semibold text-destructive-foreground">
+                      {pendingIncoming}
+                    </span>
+                  ) : null}
                 </Button>
               </Link>
             ))}
@@ -154,6 +167,11 @@ export function Navbar() {
                 >
                   <link.icon className="h-4 w-4" />
                   {link.label}
+                  {link.href === '/requests' && pendingIncoming > 0 ? (
+                    <span className="ml-1 inline-flex items-center justify-center rounded-full bg-destructive px-2 py-0.5 text-[10px] font-semibold text-destructive-foreground">
+                      {pendingIncoming}
+                    </span>
+                  ) : null}
                 </Button>
               </Link>
             ))}

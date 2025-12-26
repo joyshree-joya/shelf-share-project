@@ -18,11 +18,42 @@ export interface Item {
   rating: number;
   images: string[];
   type: 'donation' | 'exchange';
-  status: 'available' | 'pending' | 'taken';
+  status: 'available' | 'hold' | 'pending' | 'taken';
   ownerId: string;
   ownerName: string;
+  ownerEmail?: string;
   ownerAvatar?: string;
+  // Donation hold info (present when status === 'hold')
+  holdBy?: string;
+  holdByName?: string;
+  holdRequestId?: string;
+  holdAt?: string;
   createdAt: string;
+}
+
+export interface DonationMessage {
+  senderId: string;
+  senderName: string;
+  text: string;
+  createdAt: string;
+}
+
+export interface DonationRequest {
+  id: string;
+  itemId: string;
+  itemTitle: string;
+  itemImage?: string;
+  ownerId: string;
+  ownerName: string;
+  ownerEmail?: string;
+  requesterId: string;
+  requesterName: string;
+  requesterEmail: string;
+  status: 'pending' | 'accepted' | 'denied' | 'completed';
+  messages: DonationMessage[];
+  createdAt: string;
+  respondedAt?: string;
+  completedAt?: string;
 }
 
 export interface ExchangeRequest {
@@ -31,6 +62,7 @@ export interface ExchangeRequest {
   itemTitle: string;
   requesterId: string;
   requesterName: string;
+  requesterEmail: string;
   offeredItemId: string;
   offeredItemTitle: string;
   message?: string;

@@ -7,6 +7,7 @@ import itemsRouter from './routes/items.js';
 import authRouter from './routes/auth.js';
 import usersRouter from './routes/users.js';
 import exchangesRouter from './routes/exchanges.js';
+import donationsRouter from './routes/donations.js';
 
 dotenv.config();
 
@@ -23,6 +24,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/items', itemsRouter);
 app.use('/api/exchanges', exchangesRouter);
+app.use('/api/donations', donationsRouter);
 
 const PORT = Number(process.env.PORT || 5000);
 const MONGODB_URI =

@@ -55,7 +55,7 @@ export default function ItemDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
-  const { items, getUserItems, claimItem, requestExchange, isLoading: itemsLoading } = useItems();
+  const { items, getUserItems, donationRequests, requestDonation, requestExchange, isLoading: itemsLoading } = useItems();
   
   const [showExchangeModal, setShowExchangeModal] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState<string>('');
@@ -99,7 +99,13 @@ export default function ItemDetails() {
   const isOwner = user?.id === item.ownerId;
   const imageSrc = useResolvedItemImage(item);
 
-  const handleClaimDonation = async () => {
+  const relatedDonationRequest = user
+    ? donationRequests.find(
+        (r) => r.itemId === item?.id && (r.ownerId === user.id || r.requesterId === user.id)
+      )
+    : undefined;
+
+  const handleRequestDonation = async () => {
     if (!isAuthenticated) {
       navigate('/login');
       return;
@@ -107,12 +113,12 @@ export default function ItemDetails() {
 
     setIsSubmitting(true);
     await new Promise((resolve) => setTimeout(resolve, 800));
-    await claimItem(item.id);
+    await requestDonation(item.id);
     setIsSubmitting(false);
-    toast.success('Item claimed successfully!', {
-      description: 'The owner has been notified. Check your profile for details.',
+    toast.success('Request sent!', {
+      description: 'The donor will accept or deny your request. If accepted, you can chat in Requests.',
     });
-    navigate('/dashboard');
+    navigate('/requests');
   };
 
   const handleRequestExchange = async () => {
@@ -243,6 +249,14 @@ export default function ItemDetails() {
                   </Avatar>
                   <div>
                     <p className="font-medium text-foreground">{item.ownerName}</p>
+                    {item.ownerEmail ? (
+                      <a
+                        className="text-sm text-primary hover:underline"
+                        href={`mailto:${item.ownerEmail}`}
+                      >
+                        {item.ownerEmail}
+                      </a>
+                    ) : null}
                     <p className="text-sm text-muted-foreground">
                       Listed {new Date(item.createdAt).toLocaleDateString()}
                     </p>
@@ -259,18 +273,18 @@ export default function ItemDetails() {
                     variant="donation"
                     size="lg"
                     className="w-full gap-2"
-                    onClick={handleClaimDonation}
+                    onClick={handleRequestDonation}
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? (
                       <>
                         <Loader2 className="h-5 w-5 animate-spin" />
-                        Claiming...
+                        Sending...
                       </>
                     ) : (
                       <>
                         <Check className="h-5 w-5" />
-                        Claim This Item
+                        Request This Item
                       </>
                     )}
                   </Button>
@@ -295,10 +309,24 @@ export default function ItemDetails() {
             )}
 
             {item.status !== 'available' && (
-              <div className="p-4 rounded-lg bg-muted text-center">
-                <p className="font-medium text-muted-foreground">
-                  This item is no longer available
-                </p>
+              <div className="p-4 rounded-lg bg-muted text-center space-y-2">
+                {item.status === 'hold' ? (
+                  <>
+                    <p className="font-medium text-foreground">This item is on hold</p>
+                    <p className="text-sm text-muted-foreground">
+                      {isOwner
+                        ? 'Someone requested this donation. You can accept/deny and chat in Requests.'
+                        : relatedDonationRequest?.status === 'accepted'
+                          ? 'Your request was accepted. You can chat with the donor in Requests.'
+                          : 'A request is pending with the donor.'}
+                    </p>
+                    <Button variant="secondary" onClick={() => navigate('/requests')}>
+                      Go to Requests
+                    </Button>
+                  </>
+                ) : (
+                  <p className="font-medium text-muted-foreground">This item is no longer available</p>
+                )}
               </div>
             )}
           </div>
