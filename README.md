@@ -1,120 +1,138 @@
-# Shelf Share
+# 📚 Shelf Share — Community Donation & Exchange Platform
 
-This project is now **full-stack**:
+Shelf Share is a full-stack web application where users can **donate** or **exchange** items (especially books) in a structured, fair way.  
+Instead of items disappearing instantly after someone clicks “claim”, Shelf Share uses a **Request → Accept/Deny → Chat → Complete** workflow to ensure real communication and proper handover.
 
-- **Front-end:** Vite + React + TypeScript
-- **Back-end API:** Node.js + Express
-- **Database:** MongoDB (via Mongoose)
+---
 
-## Run locally (MongoDB)
+## 🎥 Demo
+> Add your demo video link here (optional)  
+Demo: https://your-demo-link
 
-1) **Start MongoDB** (choose one)
+---
 
-- **Local MongoDB:** make sure your `mongod` service is running.
-- **MongoDB Atlas:** create a cluster and copy your connection string.
+## ✨ Key Features
 
-2) **Create `.env` in the project root**
+### ✅ Authentication & User System
+- Register/Login using **JWT authentication**
+- Passwords secured using **bcrypt hashing**
+- Profile view (name, email, badges/points)
+
+### 📦 Item Management
+- Upload items with title, description, tags, category, condition, and images
+- Items are stored in **MongoDB** (persistent database)
+- Item owner info includes:
+  - **Owner name**
+  - **Owner email** (for better communication)
+
+### 🎁 Donation Workflow (Fair Claim System)
+Donation items follow a structured flow:
+
+1. User clicks **Request Donation**
+2. Item goes **ON HOLD** (still visible on website)
+3. Owner receives request in **Requests Center**
+4. Owner can **Accept** or **Deny**
+5. If accepted → **Chat opens** between both users
+6. Owner clicks **Mark as Completed** after successful handover
+7. Then item becomes **TAKEN** and disappears from listings
+
+✅ Prevents “instant claim and disappear” issue.
+
+### 🔁 Exchange Workflow (Offer 4 Items + Owner Chooses 1)
+Exchange works like donation, but includes a smart offer system:
+
+1. Requester clicks **Request Exchange**
+2. Requester selects up to **4 of their own items** as offers
+3. Item goes **ON HOLD**
+4. Owner sees request and chooses **1 offer** from the 4
+5. Owner **Accepts/Deny**
+6. If accepted → **Chat opens**
+7. Owner clicks **Mark as Completed**
+8. Both items become **TAKEN** and disappear from listings
+
+### 💬 Communication System (Chat)
+- Built-in chat for donation & exchange requests
+- Messages stored in MongoDB
+- Request status tracking: pending / accepted / denied / completed
+
+### 🔔 Request Notifications
+- Navbar shows a **pending request count**
+- Requests page organizes incoming/outgoing requests
+
+### 🖼️ Real Book Covers (Exact Covers)
+- Books automatically load **real cover images** using **Open Library API**
+- Fallback to placeholder if a cover isn’t available
+
+### 🤖 AI Suggestions (Extra Marks Feature)
+- AI-style suggestions based on:
+  - your uploaded items
+  - your past collected items
+  - similarity of tags/category/title
+- Helps recommend:
+  - “Items you may like”
+  - best offer items during exchange request (optional feature)
+
+---
+
+## 🧰 Tech Stack
+
+### Frontend
+- **React + TypeScript**
+- **Vite**
+- **Tailwind CSS**
+- **shadcn/ui + Radix UI**
+- **React Router DOM**
+
+### Backend
+- **Node.js + Express**
+- **MongoDB**
+- **Mongoose**
+
+### Security
+- **JWT (jsonwebtoken)**
+- **bcrypt**
+
+### APIs / Integrations
+- **Open Library Covers API** (for real book cover photos)
+
+---
+
+## 🖼️ Screenshots (Add yours here)
+
+> Create a folder like `assets/screenshots/` and add images, then link them.
+
+### 🏠 Landing Page
+![Landing](assets/screenshots/landing.png)
+
+### 📊 Dashboard
+![Dashboard](assets/screenshots/dashboard.png)
+
+### 📄 Item Details
+![Item Details](assets/screenshots/item-details.png)
+
+### 📩 Requests & Chat
+![Requests](assets/screenshots/requests-chat.png)
+
+### 🔁 Exchange Offer Selection
+![Exchange Modal](assets/screenshots/exchange-modal.png)
+
+---
+
+## ⚙️ Run the Project Locally
+
+### ✅ Prerequisites
+- **Node.js** installed (LTS recommended)
+- **MongoDB** installed and running locally (or use MongoDB Atlas)
+- **npm** (comes with Node)
+
+---
+
+## 🔐 Environment Setup
+
+Create a `.env` file in the project root:
 
 ```env
 MONGODB_URI=mongodb://127.0.0.1:27017/shelfshare
 PORT=5000
-JWT_SECRET=change_me
+JWT_SECRET=your_secret_key_here
 ALLOW_AUTO_CREATE=true
-```
-
-3) Install deps + seed the DB
-
-```sh
-npm i
-npm run seed -- --drop
-```
-
-4) Start dev (runs both server + client)
-
-```sh
-npm run dev
-```
-
-- Frontend: `http://localhost:8080`
-- API: `http://localhost:5000/api/health`
-
-> Note: `src/data/mockItems.ts` is kept only as a **seed source**. The UI reads from MongoDB.
-
-### Demo login
-
-- Email: `demo@shelfshare.com`
-- Password: `demo123`
-
-By default `ALLOW_AUTO_CREATE=true` also lets you log in with any new email/password and it will create a user in MongoDB.
-
-## Project info
-
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
-
-## How can I edit this code?
-
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
