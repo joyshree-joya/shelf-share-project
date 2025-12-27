@@ -102,19 +102,19 @@ Exchange works like donation, but includes a smart offer system:
 > Create a folder like `assets/screenshots/` and add images, then link them.
 
 ### 🏠 Landing Page
-![Landing](assets/screenshots/landing.png)
+![Landing](assets/landing.png)
 
-### 📊 Dashboard
-![Dashboard](assets/screenshots/dashboard.png)
+### 📊 First page
+![firstpage](assets/firstpage.png)
 
 ### 📄 Item Details
-![Item Details](assets/screenshots/item-details.png)
+![Item Details](assets/items.png)
 
 ### 📩 Requests & Chat
-![Requests](assets/screenshots/requests-chat.png)
+![Requests](assets/request.png)
 
 ### 🔁 Exchange Offer Selection
-![Exchange Modal](assets/screenshots/exchange-modal.png)
+![Exchange Modal](assets/exchange.png)
 
 ---
 
