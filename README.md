@@ -102,7 +102,7 @@ Exchange works like donation, but includes a smart offer system:
 > Create a folder like `assets/screenshots/` and add images, then link them.
 
 ### 🏠 Landing Page
-![Landing](assets/landing.png)
+![Landing](assets/screenshots/landing.png)
 
 ### 📊 First page
 ![firstpage](assets/firstpage.png)
