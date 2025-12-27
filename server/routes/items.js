@@ -156,24 +156,34 @@ router.patch('/:id', requireAuth(), async (req, res) => {
 });
 
 // DELETE /api/items/:id
-router.delete('/:id', requireAuth(), async (req, res) => {
+// DELETE item (only owner, only if available)
+router.delete("/:id", requireAuth, async (req, res) => {
   try {
-    const item = await Item.findOne({ id: req.params.id }).lean();
-    await attachOwnerEmails([item]);
-    if (!item) return res.status(404).json({ error: 'Item not found' });
-    if (item.ownerId !== req.user.id) {
-      return res.status(403).json({ error: 'You can only delete your own items' });
+    const item = await Item.findOne({ id: req.params.id });
+    if (!item) return res.status(404).json({ message: "Item not found" });
+
+    const isOwner =
+      item.ownerId === req.user.id ||
+      (item.ownerEmail && req.user.email && item.ownerEmail === req.user.email);
+
+    if (!isOwner) {
+      return res.status(403).json({ message: "Only owner can delete this item" });
     }
 
-    const deleted = await Item.findOneAndDelete({ id: req.params.id });
-    if (!deleted) return res.status(404).json({ error: 'Item not found' });
-    res.json({ ok: true });
-  } catch (_err) {
-    res.status(500).json({ error: 'Failed to delete item' });
+    // ✅ safety: don't allow delete while on hold/taken
+    if (item.status !== "available") {
+      return res.status(400).json({
+        message: "Item can't be deleted while on hold or completed.",
+      });
+    }
+
+    await Item.deleteOne({ _id: item._id });
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error("[items] delete error:", err);
+    return res.status(500).json({ message: "Server error" });
   }
 });
-if (item.status !== "available") {
-  return res.status(400).json({ message: "Item can't be deleted while on hold or completed." });
-}
+
 
 export default router;
