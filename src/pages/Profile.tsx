@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useItems } from '@/context/ItemsContext';
 import { Navbar } from '@/components/Navbar';
@@ -24,7 +24,7 @@ import { cn } from '@/lib/utils';
 
 export default function Profile() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
-  const { items, exchangeRequests, respondToExchange } = useItems();
+  const { items, exchangeRequests } = useItems();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -176,66 +176,21 @@ export default function Profile() {
           </TabsContent>
 
           <TabsContent value="requests" className="space-y-4">
-            {incomingRequests.length > 0 ? (
-              incomingRequests.map((request) => (
-                <Card key={request.id}>
-                  <CardContent className="pt-6">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                      <div>
-                        <p className="font-medium text-foreground mb-1">
-                          {request.requesterName} wants to exchange
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          <span className="font-medium">{request.offeredItemTitle}</span>
-                          {' '} for your{' '}
-                          <span className="font-medium">{request.itemTitle}</span>
-                        </p>
-                        {request.message && (
-                          <p className="text-sm text-muted-foreground mt-2 italic">
-                            "{request.message}"
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {request.status === 'pending' ? (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => void respondToExchange(request.id, false)}
-                            >
-                              <X className="h-4 w-4 mr-1" />
-                              Decline
-                            </Button>
-                            <Button
-                              size="sm"
-                              onClick={() => void respondToExchange(request.id, true)}
-                            >
-                              <Check className="h-4 w-4 mr-1" />
-                              Accept
-                            </Button>
-                          </>
-                        ) : (
-                          <Badge
-                            variant={request.status === 'accepted' ? 'success' : 'secondary'}
-                          >
-                            {request.status === 'accepted' ? 'Accepted' : 'Declined'}
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            ) : (
-              <div className="text-center py-12">
-                <Repeat className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="font-semibold text-foreground mb-1">No exchange requests</h3>
-                <p className="text-muted-foreground">
-                  Exchange requests will appear here
-                </p>
-              </div>
-            )}
+            <Card>
+              <CardContent className="pt-6">
+                <div className="space-y-2">
+                  <p className="font-medium">Exchange requests are now handled in the Requests page</p>
+                  <p className="text-sm text-muted-foreground">
+                    Open Requests to accept/deny exchange offers, chat with requesters, and mark exchanges as completed.
+                  </p>
+                  <div className="pt-2">
+                    <Button asChild>
+                      <Link to="/requests">Go to Requests</Link>
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="history" className="space-y-4">

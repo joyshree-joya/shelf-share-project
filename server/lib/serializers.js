@@ -38,5 +38,6 @@ export function toClientExchange(doc) {
     createdAt: toISO(obj.createdAt),
     updatedAt: toISO(obj.updatedAt),
     respondedAt: obj.respondedAt ? toISO(obj.respondedAt) : undefined,
+    completedAt: obj.completedAt ? toISO(obj.completedAt) : undefined,
   };
 }

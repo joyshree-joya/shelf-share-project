@@ -8,6 +8,7 @@ interface ItemsContextType {
   userItems: Item[];
   exchangeRequests: ExchangeRequest[];
   donationRequests: DonationRequest[];
+  suggestedItems: Item[];
   isLoading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
@@ -18,10 +19,13 @@ interface ItemsContextType {
   respondToDonation: (requestId: string, accept: boolean) => Promise<void>;
   sendDonationMessage: (requestId: string, text: string) => Promise<void>;
   completeDonation: (requestId: string) => Promise<void>;
-  requestExchange: (itemId: string, offeredItemId: string, message?: string) => Promise<void>;
-  respondToExchange: (requestId: string, accept: boolean) => Promise<void>;
+  requestExchange: (itemId: string, offeredItemIds: string[], note?: string) => Promise<void>;
+  respondToExchange: (requestId: string, accept: boolean, selectedOfferedItemId?: string) => Promise<void>;
+  sendExchangeMessage: (requestId: string, text: string) => Promise<void>;
+  completeExchange: (requestId: string) => Promise<void>;
   getUserItems: (userId: string) => Item[];
 }
+
 
 const ItemsContext = createContext<ItemsContextType | undefined>(undefined);
 
@@ -29,6 +33,7 @@ export function ItemsProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<Item[]>([]);
   const [exchangeRequests, setExchangeRequests] = useState<ExchangeRequest[]>([]);
   const [donationRequests, setDonationRequests] = useState<DonationRequest[]>([]);
+  const [suggestedItems, setSuggestedItems] = useState<Item[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { isAuthenticated } = useAuth();
@@ -44,9 +49,12 @@ export function ItemsProvider({ children }: { children: ReactNode }) {
         setExchangeRequests(reqs);
         const dreqs = await apiFetch<DonationRequest[]>('/donations/requests');
         setDonationRequests(dreqs);
+        const s = await apiFetch<Item[]>('/ai/suggestions');
+        setSuggestedItems(s);
       } else {
         setExchangeRequests([]);
         setDonationRequests([]);
+        setSuggestedItems([]);
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Failed to load items';
@@ -75,6 +83,10 @@ export function ItemsProvider({ children }: { children: ReactNode }) {
     void apiFetch<DonationRequest[]>('/donations/requests')
       .then(setDonationRequests)
       .catch(() => setDonationRequests([]));
+
+    void apiFetch<Item[]>('/ai/suggestions')
+      .then(setSuggestedItems)
+      .catch(() => setSuggestedItems([]));
   }, [isAuthenticated]);
 
   const addItem = async (itemData: Omit<Item, 'id' | 'createdAt' | 'status'>) => {
@@ -139,28 +151,41 @@ export function ItemsProvider({ children }: { children: ReactNode }) {
     setDonationRequests(dreqs);
   };
 
-  const requestExchange = async (
-    itemId: string,
-    offeredItemId: string,
-    message?: string
-  ) => {
+  const requestExchange = async (itemId: string, offeredItemIds: string[], note?: string) => {
     const created = await apiFetch<ExchangeRequest>('/exchanges', {
       method: 'POST',
-      body: JSON.stringify({ itemId, offeredItemId, message }),
+      body: JSON.stringify({ itemId, offeredItemIds, note }),
     });
     setExchangeRequests((prev) => [created, ...prev]);
-    // Refresh items so the requested item shows as pending.
+    // Refresh items so the requested item shows as hold.
     const data = await apiFetch<Item[]>('/items');
     setItems(data);
   };
 
-  const respondToExchange = async (requestId: string, accept: boolean) => {
+  const respondToExchange = async (requestId: string, accept: boolean, selectedOfferedItemId?: string) => {
     const updated = await apiFetch<ExchangeRequest>(`/exchanges/${requestId}/respond`, {
       method: 'PATCH',
-      body: JSON.stringify({ accept }),
+      body: JSON.stringify({ accept, selectedOfferedItemId }),
     });
     setExchangeRequests((prev) => prev.map((r) => (r.id === requestId ? updated : r)));
-    // Refresh items to reflect accepted/rejected state.
+    // Refresh items to reflect hold/available state.
+    const data = await apiFetch<Item[]>('/items');
+    setItems(data);
+  };
+
+  const sendExchangeMessage = async (requestId: string, text: string) => {
+    const updated = await apiFetch<ExchangeRequest>(`/exchanges/${requestId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ text }),
+    });
+    setExchangeRequests((prev) => prev.map((r) => (r.id === requestId ? updated : r)));
+  };
+
+  const completeExchange = async (requestId: string) => {
+    await apiFetch<{ ok: boolean }>(`/exchanges/${requestId}/complete`, { method: 'PATCH' });
+    // Refresh items and requests after completion.
+    const reqs = await apiFetch<ExchangeRequest[]>('/exchanges');
+    setExchangeRequests(reqs);
     const data = await apiFetch<Item[]>('/items');
     setItems(data);
   };
@@ -179,6 +204,7 @@ export function ItemsProvider({ children }: { children: ReactNode }) {
         userItems,
         exchangeRequests,
         donationRequests,
+        suggestedItems,
         isLoading,
         error,
         refresh,
@@ -191,6 +217,8 @@ export function ItemsProvider({ children }: { children: ReactNode }) {
         completeDonation,
         requestExchange,
         respondToExchange,
+        sendExchangeMessage,
+        completeExchange,
         getUserItems,
       }}
     >

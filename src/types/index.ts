@@ -56,18 +56,52 @@ export interface DonationRequest {
   completedAt?: string;
 }
 
+export interface ExchangeMessage {
+  senderId: string;
+  senderName: string;
+  text: string;
+  createdAt: string;
+}
+
+export interface ExchangeOfferedItem {
+  id: string;
+  title: string;
+  image?: string;
+  category?: string;
+  type?: ItemType;
+}
+
 export interface ExchangeRequest {
   id: string;
+
   itemId: string;
   itemTitle: string;
+  itemImage?: string;
+
+  ownerId: string;
+  ownerName: string;
+  ownerEmail?: string;
+
   requesterId: string;
   requesterName: string;
   requesterEmail: string;
-  offeredItemId: string;
-  offeredItemTitle: string;
-  message?: string;
-  status: 'pending' | 'accepted' | 'rejected';
+
+  offeredItemIds: string[];
+  offeredItems: ExchangeOfferedItem[];
+
+  selectedOfferedItemId?: string;
+  selectedOfferedItemTitle?: string;
+  selectedOfferedItemImage?: string;
+
+  note?: string;
+
+  status: 'pending' | 'accepted' | 'denied' | 'completed';
+
+  messages: ExchangeMessage[];
+
   createdAt: string;
+  respondedAt?: string;
+  completedAt?: string;
 }
 
 export interface Notification {

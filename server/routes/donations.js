@@ -9,6 +9,22 @@ import { toClientItem } from '../lib/serializers.js';
 
 const router = express.Router();
 
+function isOwnerForDonation(user, request) {
+  const byId = request.ownerId === user.id;
+  const byEmail =
+    request.ownerEmail && user.email && request.ownerEmail.toLowerCase() === user.email.toLowerCase();
+  return byId || byEmail;
+}
+
+function isParticipantDonation(user, request) {
+  const idMatch = request.ownerId === user.id || request.requesterId === user.id;
+  const emailMatch =
+    (request.ownerEmail && user.email && request.ownerEmail.toLowerCase() === user.email.toLowerCase()) ||
+    (request.requesterEmail && user.email && request.requesterEmail.toLowerCase() === user.email.toLowerCase());
+  return idMatch || emailMatch;
+}
+
+
 // GET /api/donations/requests
 router.get('/requests', requireAuth(), async (req, res) => {
   try {
@@ -79,7 +95,13 @@ router.patch('/requests/:id/respond', requireAuth(), async (req, res) => {
     const { accept } = req.body || {};
     const request = await DonationRequest.findOne({ id: req.params.id });
     if (!request) return res.status(404).json({ error: 'Request not found' });
-    if (request.ownerId !== req.user.id) return res.status(403).json({ error: 'Only the owner can respond' });
+    if (!isOwnerForDonation(req.user, request)) return res.status(403).json({ error: 'Only the owner can respond' });
+
+    // Self-heal ownerId when email matches
+    if (request.ownerId !== req.user.id && request.ownerEmail && req.user.email && request.ownerEmail.toLowerCase() === req.user.email.toLowerCase()) {
+      request.ownerId = req.user.id;
+      request.ownerName = req.user.name;
+    }
     if (request.status !== 'pending') return res.status(400).json({ error: 'Request is not pending' });
 
     request.status = accept ? 'accepted' : 'denied';
@@ -121,7 +143,7 @@ router.post('/requests/:id/messages', requireAuth(), async (req, res) => {
 
     const request = await DonationRequest.findOne({ id: req.params.id });
     if (!request) return res.status(404).json({ error: 'Request not found' });
-    const isParticipant = request.ownerId === req.user.id || request.requesterId === req.user.id;
+    const isParticipant = isParticipantDonation(req.user, request);
     if (!isParticipant) return res.status(403).json({ error: 'Not allowed' });
     if (request.status !== 'accepted') {
       return res.status(400).json({ error: 'Chat is available after the owner accepts the request' });
@@ -146,7 +168,13 @@ router.patch('/requests/:id/complete', requireAuth(), async (req, res) => {
   try {
     const request = await DonationRequest.findOne({ id: req.params.id });
     if (!request) return res.status(404).json({ error: 'Request not found' });
-    if (request.ownerId !== req.user.id) return res.status(403).json({ error: 'Only the owner can complete' });
+    if (!isOwnerForDonation(req.user, request)) return res.status(403).json({ error: 'Only the owner can complete' });
+
+    // Self-heal ownerId when email matches
+    if (request.ownerId !== req.user.id && request.ownerEmail && req.user.email && request.ownerEmail.toLowerCase() === req.user.email.toLowerCase()) {
+      request.ownerId = req.user.id;
+      request.ownerName = req.user.name;
+    }
     if (request.status !== 'accepted') return res.status(400).json({ error: 'Request must be accepted first' });
 
     request.status = 'completed';
@@ -185,7 +213,7 @@ router.get('/requests/:id/item', requireAuth(), async (req, res) => {
   try {
     const request = await DonationRequest.findOne({ id: req.params.id }).lean();
     if (!request) return res.status(404).json({ error: 'Request not found' });
-    const isParticipant = request.ownerId === req.user.id || request.requesterId === req.user.id;
+    const isParticipant = isParticipantDonation(req.user, request);
     if (!isParticipant) return res.status(403).json({ error: 'Not allowed' });
     const item = await Item.findOne({ id: request.itemId }).lean();
     if (!item) return res.status(404).json({ error: 'Item not found' });

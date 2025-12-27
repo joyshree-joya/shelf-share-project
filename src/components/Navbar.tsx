@@ -27,7 +27,7 @@ import { cn } from '@/lib/utils';
 
 export function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
-  const { donationRequests } = useItems();
+  const { donationRequests, exchangeRequests } = useItems();
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -44,7 +44,8 @@ export function Navbar() {
   ];
 
   const pendingIncoming = user
-    ? donationRequests.filter((r) => r.ownerId === user.id && r.status === 'pending').length
+    ? donationRequests.filter((r) => (r.ownerId === user.id || (r.ownerEmail && user.email && r.ownerEmail.toLowerCase() === user.email.toLowerCase())) && r.status === 'pending').length +
+      exchangeRequests.filter((r) => (r.ownerId === user.id || (r.ownerEmail && user.email && r.ownerEmail.toLowerCase() === user.email.toLowerCase())) && r.status === 'pending').length
     : 0;
 
   const isActive = (path: string) => location.pathname === path;

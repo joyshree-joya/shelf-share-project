@@ -172,5 +172,8 @@ router.delete('/:id', requireAuth(), async (req, res) => {
     res.status(500).json({ error: 'Failed to delete item' });
   }
 });
+if (item.status !== "available") {
+  return res.status(400).json({ message: "Item can't be deleted while on hold or completed." });
+}
 
 export default router;

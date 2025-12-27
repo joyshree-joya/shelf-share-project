@@ -11,7 +11,7 @@ import { useEffect } from 'react';
 
 export default function Dashboard() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
-  const { items, isLoading: itemsLoading, error: itemsError, refresh } = useItems();
+  const { items, suggestedItems, isLoading: itemsLoading, error: itemsError, refresh } = useItems();
   const navigate = useNavigate();
   
   const [search, setSearch] = useState('');
@@ -74,6 +74,26 @@ export default function Dashboard() {
             Discover items available for donation or exchange in your community
           </p>
         </div>
+
+        {/* AI Suggestions */}
+        {suggestedItems.length > 0 ? (
+          <div className="mb-8">
+            <div className="flex items-end justify-between gap-3 mb-4">
+              <div>
+                <h2 className="text-xl font-semibold text-foreground">AI Suggestions for you</h2>
+                <p className="text-sm text-muted-foreground">
+                  Based on your uploaded items and past collected items
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {suggestedItems.slice(0, 6).map((it) => (
+                <ItemCard key={it.id} item={it} />
+              ))}
+            </div>
+          </div>
+        ) : null}
 
         {/* Filters */}
         <div className="mb-8">

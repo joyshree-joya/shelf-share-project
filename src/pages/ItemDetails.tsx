@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useItems } from '@/context/ItemsContext';
+import { apiFetch } from '@/lib/api';
 import { Navbar } from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,13 +18,8 @@ import {
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   ArrowLeft,
   Star,
@@ -34,6 +30,7 @@ import {
   Repeat,
   Check,
   Loader2,
+  Sparkles,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -58,12 +55,12 @@ export default function ItemDetails() {
   const { items, getUserItems, donationRequests, requestDonation, requestExchange, isLoading: itemsLoading } = useItems();
   
   const [showExchangeModal, setShowExchangeModal] = useState(false);
-  const [selectedItemId, setSelectedItemId] = useState<string>('');
+  const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const item = items.find((i) => i.id === id);
-  const userItems = user ? getUserItems(user.id).filter((i) => i.status === 'available') : [];
+  const userItems = user ? getUserItems(user.id).filter((i) => i.status === 'available' && i.type === 'exchange') : [];
 
   if (!item) {
     if (itemsLoading) {
@@ -105,6 +102,43 @@ export default function ItemDetails() {
       )
     : undefined;
 
+  const toggleOffered = (offerId: string) => {
+    setSelectedItemIds((prev) => {
+      if (prev.includes(offerId)) return prev.filter((id) => id !== offerId);
+      if (prev.length >= 4) {
+        toast.error('You can offer at most 4 items');
+        return prev;
+      }
+      return [...prev, offerId];
+    });
+  };
+
+  const applyAiSuggestions = async () => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    try {
+      const resp = await apiFetch<{ items: string[]; reason?: string }>(
+        `/ai/exchange-offers?targetItemId=${encodeURIComponent(item.id)}`
+      );
+      const ids = (resp.items || [])
+        .filter((id) => userItems.some((ui) => ui.id === id))
+        .slice(0, 4);
+
+      if (ids.length === 0) {
+        toast.info('No AI suggestions available');
+        return;
+      }
+      setSelectedItemIds(ids);
+      toast.success('AI suggestions applied', {
+        description: resp.reason || 'Picked up to 4 items to offer.',
+      });
+    } catch (_e) {
+      toast.error('Failed to get AI suggestions');
+    }
+  };
+
   const handleRequestDonation = async () => {
     if (!isAuthenticated) {
       navigate('/login');
@@ -122,18 +156,22 @@ export default function ItemDetails() {
   };
 
   const handleRequestExchange = async () => {
-    if (!selectedItemId) {
-      toast.error('Please select an item to offer');
+    if (selectedItemIds.length < 1) {
+      toast.error('Please select at least 1 item to offer');
+      return;
+    }
+    if (selectedItemIds.length > 4) {
+      toast.error('You can offer at most 4 items');
       return;
     }
 
     setIsSubmitting(true);
     await new Promise((resolve) => setTimeout(resolve, 800));
-    await requestExchange(item.id, selectedItemId, message);
+    await requestExchange(item.id, selectedItemIds, message);
     setIsSubmitting(false);
     setShowExchangeModal(false);
     toast.success('Exchange request sent!', {
-      description: 'The owner will review your request.',
+      description: 'The owner will choose one of your offers. If accepted, you can chat in Requests.',
     });
   };
 
@@ -335,35 +373,61 @@ export default function ItemDetails() {
 
       {/* Exchange Modal */}
       <Dialog open={showExchangeModal} onOpenChange={setShowExchangeModal}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[calc(100vh-2rem)] overflow-y-auto !top-4 !translate-y-0 sm:!top-[50%] sm:!translate-y-[-50%] !flex !flex-col">
+
           <DialogHeader>
             <DialogTitle>Request Exchange</DialogTitle>
             <DialogDescription>
-              Select one of your items to offer in exchange for "{item.title}"
+              Choose up to 4 of your items to offer in exchange for "{item.title}". The owner will pick one.
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="offered-item">Your Item</Label>
+              <Label htmlFor="offered-item">Choose up to 4 of your exchange items</Label>
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-xs text-muted-foreground">
+                  Selected: {selectedItemIds.length}/4
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void applyAiSuggestions()}
+                  disabled={isSubmitting || userItems.length === 0}
+                >
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  AI Suggest
+                </Button>
+              </div>
+
               {userItems.length > 0 ? (
-                <Select value={selectedItemId} onValueChange={setSelectedItemId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select an item to offer" />
-                  </SelectTrigger>
-                  <SelectContent>
+                <ScrollArea className="h-32 rounded-md border p-3">
+                  <div className="space-y-3">
                     {userItems.map((userItem) => (
-                      <SelectItem key={userItem.id} value={userItem.id}>
-                        {userItem.title}
-                      </SelectItem>
+                      <label
+                        key={userItem.id}
+                        className="flex items-start gap-3 cursor-pointer rounded-md p-2 hover:bg-muted"
+                      >
+                        <Checkbox
+                          checked={selectedItemIds.includes(userItem.id)}
+                          onCheckedChange={() => toggleOffered(userItem.id)}
+                        />
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium truncate">{userItem.title}</div>
+                          <div className="text-xs text-muted-foreground truncate">
+                            {userItem.category} • {userItem.condition}
+                          </div>
+                        </div>
+                      </label>
                     ))}
-                  </SelectContent>
-                </Select>
+                  </div>
+                </ScrollArea>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  You don't have any items to exchange.{' '}
+                  You don't have any exchange items.{' '}
                   <Link to="/upload" className="text-primary hover:underline">
-                    Upload an item first
+                    Upload an exchange item first
                   </Link>
                 </p>
               )}
@@ -387,7 +451,7 @@ export default function ItemDetails() {
             </Button>
             <Button
               onClick={handleRequestExchange}
-              disabled={!selectedItemId || isSubmitting}
+              disabled={selectedItemIds.length === 0 || isSubmitting}
             >
               {isSubmitting ? (
                 <>
